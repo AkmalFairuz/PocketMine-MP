@@ -45,12 +45,16 @@ final class ZlibCompressor implements Compressor{
 	private static function make() : self{
 		return new self(self::DEFAULT_LEVEL, self::DEFAULT_THRESHOLD, self::DEFAULT_MAX_DECOMPRESSION_SIZE);
 	}
+	
+	private bool $useLibDeflate;
 
 	public function __construct(
 		private int $level,
 		private int $minCompressionSize,
 		private int $maxDecompressionSize
-	){}
+	){
+		$this->useLibDeflate = function_exists('libdeflate_deflate_compress');
+	}
 
 	public function willCompress(string $data) : bool{
 		return $this->minCompressionSize > -1 && strlen($data) >= $this->minCompressionSize;
@@ -72,7 +76,7 @@ final class ZlibCompressor implements Compressor{
 	}
 
 	public function compress(string $payload) : string{
-		if(function_exists('libdeflate_deflate_compress')){
+		if($this->useLibDeflate){
 			return $this->willCompress($payload) ?
 				libdeflate_deflate_compress($payload, $this->level) :
 				self::zlib_encode($payload, 0);
